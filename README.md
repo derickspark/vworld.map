@@ -11,7 +11,7 @@ routes, overlay layers, custom CRS, and integration with **ggplot2** /
 
 ```r
 # install.packages("remotes")
-remotes::install_github("soonmai/vworld.map")
+remotes::install_github("derickspark/vworld.map")
 ```
 
 ## Get an API key

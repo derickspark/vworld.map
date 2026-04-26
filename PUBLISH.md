@@ -1,7 +1,7 @@
 # Publishing `vworld.map` to GitHub
 
 This package is ready to push. Below are the exact commands for two common
-setups. Replace `soonmai` with a different GitHub username if you want.
+setups. Replace `derickspark` with a different GitHub username if you want.
 
 ---
 
@@ -19,7 +19,7 @@ git add .
 git commit -m "Initial commit: vworld.map 0.1.0"
 
 # 2. create the GitHub repo and push (public)
-gh repo create soonmai/vworld.map \
+gh repo create derickspark/vworld.map \
     --public \
     --source=. \
     --remote=origin \
@@ -34,7 +34,7 @@ git push origin v0.1.0
 After this, anyone can install with:
 
 ```r
-remotes::install_github("soonmai/vworld.map")
+remotes::install_github("derickspark/vworld.map")
 ```
 
 ---
@@ -54,7 +54,7 @@ initialize with README/LICENSE — we already have them), and run the commands
 GitHub gives you, which look like:
 
 ```bash
-git remote add origin https://github.com/soonmai/vworld.map.git
+git remote add origin https://github.com/derickspark/vworld.map.git
 git branch -M main
 git push -u origin main
 git tag -a v0.1.0 -m "vworld.map 0.1.0"
@@ -89,7 +89,7 @@ devtools::check("vworld.map")
 After pushing, you can add an installation badge to `README.md`:
 
 ```markdown
-[![R-CMD-check](https://github.com/soonmai/vworld.map/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/soonmai/vworld.map/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/derickspark/vworld.map/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/derickspark/vworld.map/actions/workflows/R-CMD-check.yaml)
 ```
 
 (`usethis::use_github_action_check_standard()` will set up the workflow.)

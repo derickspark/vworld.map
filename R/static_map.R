@@ -170,7 +170,7 @@ vworld_static_map <- function(key,
   resp <- httr::GET(
     url,
     httr::write_disk(path, overwrite = TRUE),
-    httr::user_agent("vworld.map R package (https://github.com/soonmai/vworld.map)")
+    httr::user_agent("vworld.map R package (https://github.com/derickspark/vworld.map)")
   )
 
   status <- httr::status_code(resp)
