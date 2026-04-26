@@ -1,7 +1,7 @@
 Package: vworld.map
 Type: Package
 Title: VWorld StaticMap API 2.0 Client for R
-Version: 0.1.0
+Version: 0.2.0
 Authors@R: person(given = "Derick S.",
                   family = "Park",
                   email = "soonmai@gmail.com",
@@ -21,6 +21,7 @@ Depends:
     R (>= 3.6.0)
 Imports:
     httr,
+    jsonlite,
     utils,
     grDevices,
     png,

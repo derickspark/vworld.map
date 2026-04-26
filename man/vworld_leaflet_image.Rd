@@ -2,13 +2,14 @@
 \alias{vworld_leaflet_image}
 \title{Add a VWorld static map as a leaflet image overlay}
 \usage{
-vworld_leaflet_image(key, center, zoom, size,
+vworld_leaflet_image(key, center,
+  zoom = 10, size = c(400, 400),
   basemap = "GRAPHIC", crs = "EPSG:4326", format = "png",
   markers = NULL, routes = NULL, layers = NULL, styles = NULL,
   bbox = NULL, opacity = 1, ...)
 }
 \arguments{
-\item{key, center, zoom, size, basemap, crs, format, markers, routes, layers, styles, bbox}{See \code{\link{vworld_ggmap_layer}}.}
+\item{key, center, zoom, size, basemap, crs, format, markers, routes, layers, styles, bbox}{See \code{\link{geom_vworld}}.}
 \item{opacity}{Layer opacity, 0..1.}
 \item{...}{Forwarded to \code{\link{vworld_static_map}}.}
 }

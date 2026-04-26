@@ -92,18 +92,50 @@
 }
 
 #' Validate a center argument and turn it into "x,y".
+#'
+#' Accepts:
+#'   * a numeric length-2 vector `c(x, y)`
+#'   * a string `"x,y"` (or `"x y"`)
+#'   * a free-text place name / address string — auto-geocoded via
+#'     [vworld_geocode()] when a `key` is provided.
+#'
+#' @param center One of the forms above.
+#' @param key VWorld API key — required only when geocoding a non-numeric
+#'   string.
+#' @param verbose If `TRUE`, message about the geocoding lookup.
 #' @keywords internal
 #' @noRd
-.encode_center <- function(center) {
-  if (is.character(center) && length(center) == 1L) {
-    parts <- strsplit(center, "[,\\s]+", perl = TRUE)[[1]]
-    .assert(length(parts) == 2L,
-            "`center` string must be of the form 'x,y'.")
-    center <- as.numeric(parts)
+.encode_center <- function(center, key = NULL, verbose = FALSE) {
+  # numeric vector path
+  if (is.numeric(center) && length(center) == 2L && all(is.finite(center))) {
+    return(paste(.fmt_num(center[1]), .fmt_num(center[2]), sep = ","))
   }
-  .assert(is.numeric(center) && length(center) == 2L && all(is.finite(center)),
-          "`center` must be a numeric length-2 (x,y) vector or 'x,y' string.")
-  paste(.fmt_num(center[1]), .fmt_num(center[2]), sep = ",")
+
+  # string path
+  if (is.character(center) && length(center) == 1L && nzchar(center)) {
+    # try to parse as "x,y" / "x y"
+    parsed <- suppressWarnings(
+      as.numeric(strsplit(center, "[,\\s]+", perl = TRUE)[[1]])
+    )
+    if (length(parsed) == 2L && all(is.finite(parsed))) {
+      return(paste(.fmt_num(parsed[1]), .fmt_num(parsed[2]), sep = ","))
+    }
+
+    # fall back to geocoding
+    if (is.null(key) || !nzchar(key)) {
+      stop("[vworld.map] `center` looks like a place name / address ('",
+           center, "'), so a `key` argument is required to geocode it.",
+           call. = FALSE)
+    }
+    if (verbose) {
+      message("[vworld.map] geocoding center: '", center, "'")
+    }
+    xy <- vworld_geocode(center, key = key, verbose = verbose)
+    return(paste(.fmt_num(xy[1]), .fmt_num(xy[2]), sep = ","))
+  }
+
+  stop("[vworld.map] `center` must be c(x, y), 'x,y', or a place / address string.",
+       call. = FALSE)
 }
 
 #' Validate `size` and return "WxH" string.
@@ -124,16 +156,36 @@
   paste(size[1], size[2], sep = ",")
 }
 
-#' Validate `basemap`.
+#' Friendly aliases for `basemap`. Case-insensitive, mapped to API codes.
+#' @keywords internal
+#' @noRd
+.basemap_aliases <- c(
+  GEOGRAPHIC   = "GRAPHIC",
+  MAP          = "GRAPHIC",
+  WHITE        = "GRAPHIC_WHITE",
+  BLANK        = "GRAPHIC_WHITE",
+  NIGHT        = "GRAPHIC_NIGHT",
+  DARK         = "GRAPHIC_NIGHT",
+  SATELLITE    = "PHOTO",
+  AERIAL       = "PHOTO",
+  HYBRID       = "PHOTO_HYBRID"
+)
+
+#' Validate `basemap` (with friendly aliases).
 #' @keywords internal
 #' @noRd
 .encode_basemap <- function(basemap) {
   if (is.null(basemap)) return("GRAPHIC")
-  basemap <- toupper(basemap)
-  .assert(basemap %in% VWORLD_BASEMAPS,
+  bm_up <- toupper(basemap)
+  if (bm_up %in% names(.basemap_aliases)) {
+    bm_up <- unname(.basemap_aliases[bm_up])
+  }
+  .assert(bm_up %in% VWORLD_BASEMAPS,
           paste0("`basemap` must be one of: ",
-                 paste(VWORLD_BASEMAPS, collapse = ", ")))
-  basemap
+                 paste(VWORLD_BASEMAPS, collapse = ", "),
+                 " (or aliases: ",
+                 paste(names(.basemap_aliases), collapse = ", "), ")"))
+  bm_up
 }
 
 #' Validate `zoom`.

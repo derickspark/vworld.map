@@ -27,24 +27,44 @@ key <- "YOUR_VWORLD_KEY"
 
 ## Build a request URL
 
+`center` can be a coordinate `c(x, y)`, an `"x,y"` string, **or a place
+name / address** — non-coordinate strings are auto-geocoded via the VWorld
+Search API.
+
 ```r
 library(vworld.map)
 
+# (1) Coordinates
 url <- vworld_static_map_url(
   key    = key,
-  center = c(126.978271, 37.566643),   # Seoul City Hall, EPSG:4326
-  zoom   = 16,
-  size   = c(400, 400),
-  markers = vworld_marker(
-    c(126.978271, 37.566643),
-    label = "City Hall",
-    color = "red",
-    image = "img01"
-  )
+  center = c(126.978271, 37.566643)   # Seoul City Hall
 )
-url
-#> "https://api.vworld.kr/req/image?service=image&...&marker=point%3A126.978271%2037.566643%7Clabel%3ACity%20Hall%7Ccolor%3Ared%7Cimage%3Aimg01"
+
+# (2) Place name (auto-geocoded)
+url <- vworld_static_map_url(
+  key    = key,
+  center = "서울시청"
+)
+
+# (3) Road address (auto-geocoded)
+url <- vworld_static_map_url(
+  key    = key,
+  center = "서울특별시 중구 세종대로 110",
+  zoom   = 16
+)
+
+# Or geocode explicitly to reuse the coordinates:
+xy <- vworld_geocode("서울시청", key = key)
+url <- vworld_static_map_url(
+  key    = key,
+  center = xy,
+  zoom   = 16,
+  markers = vworld_marker(xy, label = "City Hall", color = "red")
+)
 ```
+
+Defaults: `zoom = 10`, `size = c(400, 400)`, `basemap = "GRAPHIC"` (alias
+`"geographic"`).
 
 ## Download an image
 
@@ -96,22 +116,29 @@ vworld_static_map_url(
 )
 ```
 
-## ggplot2 background
+## ggplot2 background — `geom_vworld()`
 
 ```r
 library(ggplot2)
 
+# Coordinates
 ggplot() +
-  vworld_ggmap_layer(
-    key    = key,
-    center = c(126.978271, 37.566643),
-    zoom   = 16,
-    size   = c(640, 640),
-    basemap = "GRAPHIC"
-  ) +
+  geom_vworld(key = key, center = c(126.978271, 37.566643), zoom = 16) +
   geom_point(aes(x = 126.978271, y = 37.566643),
              color = "red", size = 4)
+
+# Place name (auto-geocoded)
+ggplot() +
+  geom_vworld(key = key, center = "서울시청", zoom = 15)
+
+# Different basemap aliases
+ggplot() + geom_vworld(key = key, center = "서울시청",
+                       basemap = "satellite", zoom = 14)
+ggplot() + geom_vworld(key = key, center = "서울시청",
+                       basemap = "hybrid",    zoom = 14)
 ```
+
+`vworld_ggmap_layer()` is kept as a backwards-compatible alias.
 
 ## leaflet underlay
 
@@ -133,13 +160,13 @@ leaflet() |>
 
 ## Supported parameters
 
-| Argument       | API param      | Notes                                                  |
-|----------------|----------------|--------------------------------------------------------|
-| `key`          | `key`          | Required.                                              |
-| `center`       | `center`       | `c(x, y)` or `"x,y"`.                                   |
-| `zoom`         | `zoom`         | 6..18.                                                  |
-| `size`         | `size`         | `c(width, height)`, max `c(1024, 1024)`.                |
-| `basemap`      | `basemap`      | One of `VWORLD_BASEMAPS`. Default `GRAPHIC`.            |
+| Argument       | API param      | Notes                                                                      |
+|----------------|----------------|----------------------------------------------------------------------------|
+| `key`          | `key`          | Required.                                                                  |
+| `center`       | `center`       | `c(x, y)`, `"x,y"`, or **place name / address** (auto-geocoded).            |
+| `zoom`         | `zoom`         | 6..18. **Default `10`.**                                                   |
+| `size`         | `size`         | `c(width, height)`, max `c(1024, 1024)`. **Default `c(400, 400)`.**         |
+| `basemap`      | `basemap`      | One of `VWORLD_BASEMAPS` or alias (`geographic`, `satellite`, `hybrid`, `white`, `night`, `none`). Default `GRAPHIC`. |
 | `crs`          | `crs`          | `"EPSG:4326"` (default) or any in `VWORLD_CRS`.         |
 | `format`       | `format`       | `png` (default) / `jpeg` / `bmp`.                       |
 | `markers`      | `marker`       | One or a list of `vworld_marker()` objects.             |
@@ -165,6 +192,23 @@ You can pass any of:
 crs = "EPSG:5179"     # raw EPSG string
 crs = 5179            # numeric code -> "EPSG:5179"
 crs = "UTMK"          # short name from VWORLD_CRS
+```
+
+## Geocoding
+
+```r
+# Top match as c(x, y) in EPSG:4326
+vworld_geocode("서울시청", key = key)
+#> 126.9779 37.5663
+
+# All matches as a data.frame
+vworld_geocode("강남역", key = key, all_results = TRUE)
+#>           x        y    title category address_road address_parcel  type
+#> 1  127.02762 37.49799 강남역    ...      ...          ...           place
+#> 2  ...
+
+# Address-only search
+vworld_geocode("세종대로 110", key = key, type = "address")
 ```
 
 ## License

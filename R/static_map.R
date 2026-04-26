@@ -44,8 +44,8 @@
 #' @export
 vworld_static_map_url <- function(key,
                                   center,
-                                  zoom,
-                                  size,
+                                  zoom        = 10,
+                                  size        = c(400, 400),
                                   basemap     = "GRAPHIC",
                                   crs         = "EPSG:4326",
                                   format      = "png",
@@ -57,7 +57,8 @@ vworld_static_map_url <- function(key,
                                   service     = "image",
                                   version     = "2.0",
                                   request     = "getmap",
-                                  extra       = NULL) {
+                                  extra       = NULL,
+                                  verbose     = FALSE) {
 
   .assert(is.character(key) && length(key) == 1L && nzchar(key),
           "`key` is required (a single non-empty character string).")
@@ -78,7 +79,7 @@ vworld_static_map_url <- function(key,
     format      = .encode_format(format),
     errorFormat = error_format,
     basemap     = .encode_basemap(basemap),
-    center      = .encode_center(center),
+    center      = .encode_center(center, key = key, verbose = verbose),
     crs         = .encode_crs(crs),
     zoom        = .encode_zoom(zoom),
     size        = .encode_size(size),
@@ -131,8 +132,8 @@ vworld_static_map_url <- function(key,
 #' @export
 vworld_static_map <- function(key,
                               center,
-                              zoom,
-                              size,
+                              zoom        = 10,
+                              size        = c(400, 400),
                               basemap     = "GRAPHIC",
                               crs         = "EPSG:4326",
                               format      = "png",
@@ -153,6 +154,7 @@ vworld_static_map <- function(key,
     markers = markers, routes = routes,
     layers = layers, styles = styles,
     error_format = error_format,
+    verbose = verbose,
     extra = extra
   )
 

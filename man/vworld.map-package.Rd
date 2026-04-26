@@ -13,6 +13,7 @@ integration.
 \code{\link{vworld_static_map}},
 \code{\link{vworld_marker}},
 \code{\link{vworld_route}},
-\code{\link{vworld_ggmap_layer}},
+\code{\link{vworld_geocode}},
+\code{\link{geom_vworld}},
 \code{\link{vworld_leaflet_image}}
 }

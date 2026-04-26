@@ -1,51 +1,88 @@
 # integrations.R ------------------------------------------------------------
 
-#' Use a VWorld static map as a ggplot2 background layer
+#' Add a VWorld static map as a ggplot2 background layer
 #'
 #' Downloads a VWorld static map for the requested area and returns it as a
-#' `ggplot2::annotation_raster()` layer that can be added to a ggplot. The
-#' raster is positioned in the **same coordinate system as `center`/`crs`**,
-#' so points/lines you plot on top of it should use matching coordinates.
+#' `ggplot2::annotation_raster()` layer (plus a matching `coord_fixed()`)
+#' that can be added to a ggplot with `+`. The raster is positioned in the
+#' **same coordinate system as `center` / `crs`**, so points and lines you
+#' plot on top of it should use matching coordinates.
+#'
+#' `center` may be:
+#' \itemize{
+#'   \item a numeric `c(x, y)`,
+#'   \item a `"x,y"` string,
+#'   \item a place name or address (e.g. `"서울시청"`,
+#'         `"서울특별시 중구 세종대로 110"`) — auto-geocoded via the
+#'         VWorld Search API ([vworld_geocode()]).
+#' }
 #'
 #' Because VWorld doesn't expose the exact map bounding box for a given
 #' (center, zoom, size), we approximate it from a Web Mercator pixel scale
 #' equation (`metersPerPixel = 156543.03392 * cos(lat) / 2^zoom`) when
 #' `crs = EPSG:4326` or any Web-Mercator-aligned projection. For other
-#' projections, you can pass `bbox = c(xmin, ymin, xmax, ymax)` directly.
+#' projections, pass `bbox = c(xmin, ymin, xmax, ymax)` directly.
 #'
 #' Requires the `ggplot2` and `magick` (or `png`/`jpeg`) packages.
 #'
-#' @inheritParams vworld_static_map
+#' @param key VWorld API key. Required.
+#' @param center Map center — see Details for accepted forms.
+#' @param zoom Integer zoom level, 6..18. Default `10`.
+#' @param size Image size as `c(width, height)`. Default `c(400, 400)`.
+#'   Each side capped at `1024`.
+#' @param basemap One of [VWORLD_BASEMAPS] or a friendly alias
+#'   (`"geographic"`, `"satellite"`, `"hybrid"`, `"white"`, `"night"`,
+#'   `"none"`). Default `"GRAPHIC"`.
+#' @param crs Coordinate reference system. Default `"EPSG:4326"`.
+#' @param format Image format: `"png"` (default), `"jpeg"`, or `"bmp"`.
+#' @param markers,routes,layers,styles See [vworld_static_map_url()].
 #' @param bbox Optional `c(xmin, ymin, xmax, ymax)` bounding box in the same
-#'   CRS as `center`. If `NULL`, computed from the Web-Mercator pixel scale
-#'   when `crs` is `EPSG:4326`.
+#'   CRS as `center`. If `NULL`, computed automatically.
+#' @param ... Forwarded to [vworld_static_map()].
 #' @return A list of ggplot2 layers — add to a ggplot with `+`.
 #' @examples
 #' \dontrun{
 #' library(ggplot2)
+#'
+#' # Coordinates
 #' ggplot() +
-#'   vworld_ggmap_layer(
-#'     key = Sys.getenv("VWORLD_API_KEY"),
-#'     center = c(126.978271, 37.566643),
-#'     zoom = 16, size = c(640, 640)
+#'   geom_vworld(
+#'     key    = Sys.getenv("VWORLD_API_KEY"),
+#'     center = c(126.978271, 37.566643)
 #'   ) +
-#'   coord_fixed() +
-#'   geom_point(aes(x = 126.978271, y = 37.566643), color = "red", size = 3)
+#'   geom_point(aes(x = 126.978271, y = 37.566643),
+#'              color = "red", size = 3)
+#'
+#' # Place name (auto-geocoded)
+#' ggplot() +
+#'   geom_vworld(
+#'     key    = Sys.getenv("VWORLD_API_KEY"),
+#'     center = "서울시청",
+#'     zoom   = 15
+#'   )
 #' }
 #' @export
-vworld_ggmap_layer <- function(key, center, zoom, size,
-                               basemap = "GRAPHIC", crs = "EPSG:4326",
-                               format = "png",
-                               markers = NULL, routes = NULL,
-                               layers = NULL, styles = NULL,
-                               bbox = NULL, ...) {
+geom_vworld <- function(key,
+                        center,
+                        zoom    = 10,
+                        size    = c(400, 400),
+                        basemap = "GRAPHIC",
+                        crs     = "EPSG:4326",
+                        format  = "png",
+                        markers = NULL, routes = NULL,
+                        layers  = NULL, styles = NULL,
+                        bbox    = NULL, ...) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
-    stop("[vworld.map] vworld_ggmap_layer() needs the 'ggplot2' package.",
+    stop("[vworld.map] geom_vworld() needs the 'ggplot2' package.",
          call. = FALSE)
   }
 
+  # Resolve a place-name center to coordinates ONCE, before passing to
+  # static_map(), so that .approx_bbox() can use the numeric center.
+  resolved_center <- .resolve_center(center, key = key)
+
   img_path <- vworld_static_map(
-    key = key, center = center, zoom = zoom, size = size,
+    key = key, center = resolved_center, zoom = zoom, size = size,
     basemap = basemap, crs = crs, format = format,
     markers = markers, routes = routes,
     layers = layers, styles = styles,
@@ -56,7 +93,7 @@ vworld_ggmap_layer <- function(key, center, zoom, size,
   raster <- .read_raster(img_path, format)
 
   if (is.null(bbox)) {
-    bbox <- .approx_bbox(center, zoom, size, crs)
+    bbox <- .approx_bbox(resolved_center, zoom, size, crs)
   }
   .assert(is.numeric(bbox) && length(bbox) == 4L,
           "`bbox` must be c(xmin, ymin, xmax, ymax).")
@@ -74,6 +111,13 @@ vworld_ggmap_layer <- function(key, center, zoom, size,
       expand = FALSE
     )
   )
+}
+
+#' @rdname geom_vworld
+#' @export
+vworld_ggmap_layer <- function(...) {
+  # backwards-compatible alias
+  geom_vworld(...)
 }
 
 #' Add a VWorld static map as a leaflet image overlay
@@ -102,7 +146,9 @@ vworld_ggmap_layer <- function(key, center, zoom, size,
 #'   overlay()
 #' }
 #' @export
-vworld_leaflet_image <- function(key, center, zoom, size,
+vworld_leaflet_image <- function(key, center,
+                                 zoom    = 10,
+                                 size    = c(400, 400),
                                  basemap = "GRAPHIC", crs = "EPSG:4326",
                                  format = "png",
                                  markers = NULL, routes = NULL,
@@ -113,8 +159,10 @@ vworld_leaflet_image <- function(key, center, zoom, size,
          call. = FALSE)
   }
 
+  resolved_center <- .resolve_center(center, key = key)
+
   img_path <- vworld_static_map(
-    key = key, center = center, zoom = zoom, size = size,
+    key = key, center = resolved_center, zoom = zoom, size = size,
     basemap = basemap, crs = crs, format = format,
     markers = markers, routes = routes,
     layers = layers, styles = styles,
@@ -122,7 +170,7 @@ vworld_leaflet_image <- function(key, center, zoom, size,
     ...
   )
 
-  if (is.null(bbox)) bbox <- .approx_bbox(center, zoom, size, crs)
+  if (is.null(bbox)) bbox <- .approx_bbox(resolved_center, zoom, size, crs)
   .assert(is.numeric(bbox) && length(bbox) == 4L,
           "`bbox` must be c(xmin, ymin, xmax, ymax).")
 
@@ -191,4 +239,28 @@ vworld_leaflet_image <- function(key, center, zoom, size,
     center[2] - halfH_m * deg_per_m_lat,
     center[1] + halfW_m * deg_per_m_lon,
     center[2] + halfH_m * deg_per_m_lat)
+}
+
+#' Resolve a `center` argument (numeric / "x,y" / place / address) to a
+#' numeric `c(x, y)`. Performs geocoding when needed.
+#' @keywords internal
+#' @noRd
+.resolve_center <- function(center, key) {
+  if (is.numeric(center) && length(center) == 2L && all(is.finite(center))) {
+    return(as.numeric(center))
+  }
+  if (is.character(center) && length(center) == 1L && nzchar(center)) {
+    parsed <- suppressWarnings(
+      as.numeric(strsplit(center, "[,\\s]+", perl = TRUE)[[1]])
+    )
+    if (length(parsed) == 2L && all(is.finite(parsed))) {
+      return(parsed)
+    }
+    .assert(is.character(key) && length(key) == 1L && nzchar(key),
+            "`center` is a place / address; a `key` is required to geocode it.")
+    xy <- vworld_geocode(center, key = key)
+    return(as.numeric(xy))
+  }
+  stop("[vworld.map] `center` must be c(x, y), 'x,y', or a place / address string.",
+       call. = FALSE)
 }

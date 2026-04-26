@@ -2,7 +2,8 @@
 \alias{vworld_static_map}
 \title{Download a VWorld StaticMap image}
 \usage{
-vworld_static_map(key, center, zoom, size,
+vworld_static_map(key, center,
+  zoom = 10, size = c(400, 400),
   basemap = "GRAPHIC", crs = "EPSG:4326", format = "png",
   markers = NULL, routes = NULL,
   layers = NULL, styles = NULL,
